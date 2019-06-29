@@ -29,6 +29,7 @@ export default () => {
       setGameState(GAME_STATES.NARRATOR);
     });
     soc.on('input', (data) => {
+      console.log(data);
       setGameState(GAME_STATES.INPUT);
       setInput({
         question: data.question,
@@ -124,12 +125,12 @@ export default () => {
       content = (
         <div>
           <h1>{`${name}, ${storyName}`}</h1>
-          <p>The narrator is speeking...</p>
+          <p>Waiting for player responses...</p>
         </div>
       );
       break;
   }
-
+  console.log(gameState);
   return (
     <Fragment>
       {content}

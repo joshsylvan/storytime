@@ -11,7 +11,7 @@ const STORY_STATE = {
 export default () => {
   const [block, setBlock] = useState();
   const [socket, setSocket] = useState();
-  const [players, setPlayers] = useState();
+  const [players, setPlayers] = useState([]);
   const [gameState, setGameState] = useState();
 
   const onEvent = (soc) => {
@@ -56,12 +56,25 @@ export default () => {
   }, [block])
 
   let content;
+  switch (gameState) {
+    case STORY_STATE.LOBBY:
+      content = (<div>
+        {players.map(([name, title]) => (<h2>{`${name}, ${title}`}</h2>))}
+        <button onClick={speek}>CLICK</button>
+      </div>);
+      break;
+    case STORY_STATE.READING:
+      content = JSON.stringify(block);
+      break;
+    case STORY_STATE.WAITING:
+      content = 'waiting';
+      break;
+  }
 
 
   return (
     <div>
-      {JSON.stringify(players)}
-      <button onClick={speek}>CLICK</button>
+      {content}
     </div>
   );
 };
