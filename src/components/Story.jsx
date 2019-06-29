@@ -14,6 +14,10 @@ export default () => {
     });
   };
 
+  const onDialogRead = () => {
+    console.log('done');
+  };
+
   useEffect(() => {
     setBlock(new SpeechBlock(
       [
@@ -26,7 +30,7 @@ export default () => {
   }, []);
 
   const speek = () => {
-    block.speek();
+    block.speek(onDialogRead);
   }
 
   return (

@@ -14,8 +14,10 @@ export class SpeechBlock {
       if (this.currentLine < this.lines.length) {
         this.currentLine++;
         this.speek();
+        // console.log(this.currentLine, this.lines.length);
       } else {
-        if (callback) callback();
+        console.log('asdasd');
+        callback();
       }
     };
     window.speechSynthesis.speak(utterThis);
