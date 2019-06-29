@@ -13,13 +13,10 @@ export class SpeechBlock {
     utterThis.onend = () => {
       if (this.currentLine < this.lines.length) {
         this.currentLine++;
-        this.speek();
-        // console.log(this.currentLine, this.lines.length);
-      } else {
-        console.log('asdasd');
-        callback();
+        this.speek(callback);
       }
     };
+    if (this.currentLine === this.lines.length) callback();
     window.speechSynthesis.speak(utterThis);
   }
 };
