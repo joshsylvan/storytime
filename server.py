@@ -15,7 +15,14 @@ app = socketio.WSGIApp(sio, static_files={'/': {'content_type': 'text/html', 'fi
 CURRENT_STORY = None
 
 
-class StoryNarration:
+class Story:
+    players = []
+
+    def get_next(self):
+        return self.next
+
+
+class StoryNarration(Story):
     def __init__(self, name, data):
         self.name, self.data = name, data.split('. ')
 
@@ -23,7 +30,7 @@ class StoryNarration:
         emit_narrator(self)
 
 
-class StoryPoint:
+class StoryInput(Story):
     def __init__(self, name, data,):
         self.name, self.data = name, data.split('. ')
         self.next = None
@@ -32,10 +39,16 @@ class StoryPoint:
         emit_input(self)
 
 
-class StoryDecision:
+class StoryDecision(Story):
     def __init__(self, name, data):
-        self.name, self.data = name, data.split('. ')
+        self.name, self.data = name, data
         self.left, self.right = None, None
+
+    def get_next(self):
+        return [next_story if len(next_story.players) > 0 else None for next_story in [self.left, self.right]]
+
+    def get_name(self):
+        pass
 
     def emit(self):
         emit_choice(self)
@@ -52,16 +65,23 @@ class Player:
 def construct_story():
     """"""
     intro = StoryNarration('intro', 'You are in front of this mansion. What are you wearing?')
-    disguise = StoryPoint('disguise', 'What disguise are you wearing?')
+    disguise = StoryInput('disguise', 'What disguise are you wearing?')
     entering = StoryNarration('entering', 'You enter the mansion. People greet you and ask what gift you brought.')
-    gift = StoryPoint('gift', 'What gift did you bring?')
-    mingle = StoryDecision('mingle', 'You approach some people, what do you say?')
-    garden = StoryPoint('garden', 'What you drinking fam?')
-    library = StoryPoint('library', "What do you think of Hitler's painting?")
+    gift = StoryInput('gift', 'What gift did you bring?')
+    thanks = StoryNarration('thanks', 'You may enter. You approach people, what do you say?')
+    mingle = StoryInput('mingle', 'You approach some people, what do you say?')
+    awkward = StoryNarration('awkward', 'You are weird. Leave. You need to find Hitler.')
+    search = StoryDecision('search', {'question': 'Where do you go to find Hitler himself?', 'choices': ['Garden', 'Library']})
 
-    mingle.left = garden
-    mingle.right = library
-    gift.next = mingle
+    garden = StoryInput('garden', 'What you drinking fam?')
+    library = StoryInput('library', "What do you think of Hitler's painting?")
+
+    search.left = garden
+    search.right = library
+    awkward.next = search
+    mingle.next = awkward
+    thanks.next = mingle
+    gift.next = thanks
     entering.next = gift
     disguise.next = entering
     intro.next = disguise
@@ -71,8 +91,9 @@ def construct_story():
 
 def advance_story():
     global CURRENT_STORY
-    print(f'story: current={CURRENT_STORY.name}, next={CURRENT_STORY.next.name}')
-    CURRENT_STORY = CURRENT_STORY.next
+    next_story = CURRENT_STORY.get_next()
+    print(f'story: current={CURRENT_STORY.name}, next={next_story.name}')
+    CURRENT_STORY = next_story
     CURRENT_STORY.emit()
 
 
@@ -88,14 +109,14 @@ def get_honorific():
 
 
 def speak(msg):
-    os.system(f'say {msg}')
+    sio.emit('speak', msg)
 
 
 def shutdown():
     if PLAYERS:
-        speak(f'Death is inevitable. Killing {len(PLAYERS)} players.')
+        os.system(f'say "Death is inevitable. Killing {len(PLAYERS)} players."')
     else:
-        speak('Server shutting down.')
+        os.system('say "Server shutting down."')
 
 
 def emit_lobby(player):
@@ -179,7 +200,6 @@ def start(sid):
 @sio.on('read_end')
 def read_end(sid):
     """End of narration spoken. Get next action."""
-    print('read end')
     advance_story()
 
 
@@ -191,11 +211,17 @@ def next(sid, data):
     print(f'next: player={player.name}, response={response}')
     player.has_responded = True
     player.responses[CURRENT_STORY.name] = response
+
+    if isinstance(CURRENT_STORY, StoryDecision):
+        if CURRENT_STORY.left.name == response:
+            CURRENT_STORY.left.players.append(sid)
+        else:
+            CURRENT_STORY.right.players.append(sid)
     check_all_players_done()
 
 
 def start_server():
-    speak('Starting server')
+    os.system('say "starting server"')
     eventlet.wsgi.server(eventlet.listen(('', port)), app)
 
 if __name__ == '__main__':
