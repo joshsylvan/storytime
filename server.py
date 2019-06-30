@@ -4,6 +4,7 @@ import random
 
 import socketio
 import eventlet
+import jinja2
 
 port = 5000
 
@@ -17,22 +18,39 @@ CURRENT_STORY = None
 
 class Story:
     players = []
+    data = None
+    mapping = None
 
     def get_next(self):
         return self.next
 
+    def render_data(self):
+        print(f'templating {self.data}')
+        template = jinja2.Template(self.data)
+        player = next(iter(PLAYERS.values()))
+        print(f'player:{player.__dict__}')
+        for item, value in self.mapping.items():
+            self.mapping[item] = getattr(player, value)
+        print(self.mapping)
+        text = template.render(self.mapping)
+        return text
+
 
 class StoryNarration(Story):
-    def __init__(self, name, data):
-        self.name, self.data = name, data.split('. ')
+    def __init__(self, name, data, mapping=None):
+        self.name, self.data = name, data
+        self.mapping = mapping
 
     def emit(self):
-        emit_narrator(self)
+        text = super().render_data()
+        text = text.split('. ')
+        print(text)
+        emit_narrator(text)
 
 
 class StoryInput(Story):
-    def __init__(self, name, data,):
-        self.name, self.data = name, data.split('. ')
+    def __init__(self, name, data):
+        self.name, self.data = name, data
         self.next = None
 
     def emit(self):
@@ -64,9 +82,13 @@ class Player:
 
 def construct_story():
     """"""
+    wearing = ['{{player_fullname}} is wearing {{player_responses_disguise}}.' for player in range(len(PLAYERS))]
+    entering_mapping = {'player_fullname': 'fullname', 'player_responses_disguise': 'response_disguise'}
+    entering_text = f'{" ".join(wearing)} You enter the mansion. People greet you and ask what gift you brought.'
+
     intro = StoryNarration('intro', 'You are in front of this mansion. What are you wearing?')
     disguise = StoryInput('disguise', 'What disguise are you wearing?')
-    entering = StoryNarration('entering', 'You enter the mansion. People greet you and ask what gift you brought.')
+    entering = StoryNarration('entering', entering_text, entering_mapping)
     gift = StoryInput('gift', 'What gift did you bring?')
     thanks = StoryNarration('thanks', 'You may enter. You approach people, what do you say?')
     mingle = StoryInput('mingle', 'You approach some people, what do you say?')
@@ -125,9 +147,9 @@ def emit_lobby(player):
     sio.emit('lobby', {'honorific': player.honorific, 'players': player_list})
 
 
-def emit_narrator(story):
+def emit_narrator(text):
     """Narrator block without input."""
-    sio.emit('narrator', story.data)
+    sio.emit('narrator', text)
 
 
 def emit_input(story):
@@ -194,7 +216,7 @@ def start(sid):
     player_name = PLAYERS[sid].name
     speak(f'Player - {player_name} - is starting this bitch of a game.')
     CURRENT_STORY = construct_story()
-    emit_narrator(CURRENT_STORY)
+    emit_narrator(CURRENT_STORY.data.split('. '))
 
 
 @sio.on('read_end')
@@ -203,14 +225,16 @@ def read_end(sid):
     advance_story()
 
 
-@sio.on('next')
-def next(sid, data):
+@sio.on('next_event')
+def next_event(sid, data):
     global CURRENT_STORY
     type, response = data['body']['type'], data['body']['data']
     player = PLAYERS[sid]
     print(f'next: player={player.name}, response={response}')
     player.has_responded = True
-    player.responses[CURRENT_STORY.name] = response
+    response_name = f'response_{CURRENT_STORY.name}'
+    print(response_name)
+    setattr(player, response_name, response)
 
     if isinstance(CURRENT_STORY, StoryDecision):
         if CURRENT_STORY.left.name == response:
