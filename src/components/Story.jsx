@@ -23,6 +23,12 @@ export default () => {
       setGameState(STORY_STATE.READING);
       setBlock(new SpeechBlock(data));
     });
+    soc.on('speak', (data) => {
+      // Handle the narrator lines
+      console.log('asdasd');
+      const utterThis = new SpeechSynthesisUtterance(data);
+      window.speechSynthesis.speak(utterThis);
+    });
   };
 
   const onDialogRead = () => {

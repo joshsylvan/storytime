@@ -5,6 +5,7 @@
   "main": "index.jsx",
   "scripts": {
     "start": "webpack-dev-server --host 0.0.0.0",
+    "build": "webpack --mode=production",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Joshua Gabrel",

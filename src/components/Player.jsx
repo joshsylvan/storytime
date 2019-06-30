@@ -30,19 +30,19 @@ export default () => {
     });
     soc.on('input', (data) => {
       console.log(data);
-      setGameState(GAME_STATES.INPUT);
       setInput({
         question: data.question,
         input: '',
       });
+      setGameState(GAME_STATES.INPUT);
     });
     soc.on('choice', (data) => {
-      setGameState(GAME_STATES.CHOICE);
+      console.log(data);
       setChoice({
         question: data.question,
         choices: data.choices,
-        choice: '',
       });
+      setGameState(GAME_STATES.CHOICE);
     });
   };
 
@@ -53,6 +53,8 @@ export default () => {
   };
 
   const onNext = (type, string) => {
+    setChoice({});
+    setInput({});
     const body = {
       type,
       data: string,
