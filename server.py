@@ -27,12 +27,13 @@ class Story:
     def render_data(self):
         print(f'templating {self.data}')
         template = jinja2.Template(self.data)
-        player = next(iter(PLAYERS.values()))
-        print(f'player:{player.__dict__}')
-        for item, value in self.mapping.items():
-            self.mapping[item] = getattr(player, value)
-        print(self.mapping)
-        text = template.render(self.mapping)
+        # player = next(iter(PLAYERS.values()))
+        for sid, player in PLAYERS.items():
+            print(f'player:{player.__dict__}')
+            for item, value in self.mapping.items():
+                self.mapping[item] = getattr(player, value)
+
+        text += template.render(self.mapping)
         return text
 
 
@@ -82,7 +83,7 @@ class Player:
 
 def construct_story():
     """"""
-    wearing = ['{{player_fullname}} is wearing {{player_responses_disguise}}.' for player in range(len(PLAYERS))]
+    wearing = [f'{{{sid}_fullname}} is wearing {{{sid}_responses_disguise}}.' for sid, player in PLAYERS.items()]
     entering_mapping = {'player_fullname': 'fullname', 'player_responses_disguise': 'response_disguise'}
     entering_text = f'{" ".join(wearing)} You enter the mansion. People greet you and ask what gift you brought.'
 
