@@ -1,0 +1,28 @@
+The year is 1945. Our heroes find themselves in Nazi Germany. The goal is simple. Kill Hitler.
+
+
+With us we have: {{player1_fullname}} - {{player2_fullname}} - {{player3_fullname}}
+
+On a cold, cold night in Hamburg
+
+
+
+You arrive at the party, Josh, what are you wearing?
+
+What did you get Mrs. Hitler?
+
+Enter a social circle with strangers, what do you say?
+
+Library/Garden
+
+
+Garden: bar
+
+
+Library: painting opinion
+
+Storms off
+
+
+
+
