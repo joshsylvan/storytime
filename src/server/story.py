@@ -1,17 +1,9 @@
-import os
-import time
+"""Storyline handling."""
 import random
 
-import socketio
-import eventlet
-import jinja2
-
-port = 5000
+from .emitters import emit_narrator, emit_input, emit_choice
 
 PLAYERS = {}
-
-sio = socketio.Server()
-app = socketio.WSGIApp(sio, static_files={'/': {'content_type': 'text/html', 'filename': 'index.html'}})
 
 CURRENT_STORY = None
 
@@ -112,6 +104,16 @@ def construct_story():
     return intro
 
 
+def start():
+    global CURRENT_STORY
+    CURRENT_STORY = construct_story()
+
+def get_story_text():
+    global CURRENT_STORY
+    story_text = CURRENT_STORY.data.split('. ')
+    return story_text
+
+
 def advance_story():
     global CURRENT_STORY
     next_story = CURRENT_STORY.get_next()
@@ -131,40 +133,6 @@ def get_honorific():
     return f'the {honorifics[random.randrange(0, len(honorifics))]}'
 
 
-def speak(msg):
-    sio.emit('speak', msg)
-
-
-def shutdown():
-    if PLAYERS:
-        os.system(f'say "Death is inevitable. Killing {len(PLAYERS)} players."')
-    else:
-        os.system('say "Server shutting down."')
-
-
-def emit_lobby(player):
-    """Lobby"""
-    player_list = [[player.name, player.honorific] for player in PLAYERS.values()]
-    sio.emit('lobby', {'honorific': player.honorific, 'players': player_list})
-
-
-def emit_narrator(text):
-    """Narrator block without input."""
-    sio.emit('narrator', text)
-
-
-def emit_input(story):
-    """Send input prompt and wait for all feedback. """
-    print(f'emitting input {story.name}')
-    sio.emit('input', {'question': story.data})
-
-
-def emit_choice(story):
-    """Send choice prompt and wait for all feedback"""
-    print(f'emitting choice {story.name}')
-    sio.emit('choice', story.data)
-
-
 def check_all_players_done():
     """Update path and then give to narrator."""
     print('waiting for responses')
@@ -182,73 +150,3 @@ def check_all_players_done():
         for player in PLAYERS.values():
             player.has_responded = False
         advance_story()
-
-
-@sio.event
-def connect(sid, _):
-    # speak(f'New connection')
-    pass
-
-
-@sio.event
-def disconnect(sid):
-    if sid in PLAYERS:
-        player = PLAYERS[sid]
-        speak(f'Player {player.fullname} brutally died.')
-        del PLAYERS[sid]
-        emit_lobby(player)
-    assert sid not in PLAYERS
-
-
-@sio.on('intro')
-def intro(sid, data):
-    assert sid not in PLAYERS
-    player = Player(data['name'], get_honorific())  # create player
-    PLAYERS[sid] = player  # add to player dict
-    player.fullname = f'{player.name} {player.honorific}'
-    speak(f'New player: {player.name} - {player.honorific}.')
-
-    emit_lobby(player)
-
-
-@sio.on('start')
-def start(sid):
-    global CURRENT_STORY
-    player_name = PLAYERS[sid].name
-    speak(f'Player - {player_name} - is starting this bitch of a game.')
-    CURRENT_STORY = construct_story()
-    emit_narrator(CURRENT_STORY.data.split('. '))
-
-
-@sio.on('read_end')
-def read_end(sid):
-    """End of narration spoken. Get next action."""
-    advance_story()
-
-
-@sio.on('next_event')
-def next_event(sid, data):
-    global CURRENT_STORY
-    type, response = data['body']['type'], data['body']['data']
-    player = PLAYERS[sid]
-    print(f'next: player={player.name}, response={response}')
-    player.has_responded = True
-    response_name = f'response_{CURRENT_STORY.name}'
-    print(response_name)
-    setattr(player, response_name, response)
-
-    if isinstance(CURRENT_STORY, StoryDecision):
-        if CURRENT_STORY.left.name == response:
-            CURRENT_STORY.left.players.append(sid)
-        else:
-            CURRENT_STORY.right.players.append(sid)
-    check_all_players_done()
-
-
-def start_server():
-    os.system('say "starting server"')
-    eventlet.wsgi.server(eventlet.listen(('', port)), app)
-
-if __name__ == '__main__':
-    start_server()
-    shutdown()
