@@ -37,7 +37,7 @@ def intro(sid, data):
 @sio.on('start')
 def start(sid):
     player_name = story.PLAYERS[sid].name
-    emitters.speak(f'Player - {player_name} - is starting this bitch of a game.')
+    emitters.speak(f'{player_name} - is starting the game.')
     story.start()
     story_text = story.get_story_text()
     emitters.emit_narrator(story_text)
@@ -56,7 +56,6 @@ def next(sid, data):
     print(f'next: player={player.name}, response={response}')
     player.has_responded = True
     response_name = f'response_{story.CURRENT_STORY.name}'
-    print(response_name)
     setattr(player, response_name, response)
 
     if isinstance(story.CURRENT_STORY, story.StoryDecision):

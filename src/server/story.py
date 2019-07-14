@@ -20,13 +20,13 @@ class Story:
     def render_data(self):
         print(f'templating {self.data}')
         text = ""
-        template = jinja2.Template(self.data)
+        template = jinja2.Template(str(self.data))
         player_mapping = {}
         for sid, player in PLAYERS.items():
             print(f'player:{player.__dict__}')
             for item, value in self.mapping.items():
                 sid_value = "_".join(item.split("_")[1:])
-                sid_value = f"{sid}_{sid_value}"
+                sid_value = f"{sid_value}_{sid}"
                 player_mapping[sid_value] = getattr(player, value)
         print("mapping:", player_mapping)
         text += template.render(player_mapping)
@@ -80,8 +80,8 @@ class Player:
 def construct_template(players, template, template_vars):
     """For every player, extract template_vars from player and fill into template."""
     player_sentences = []
-    for sid, player in PLAYERS.items():
-        player_vars = ['{{%s}}' % f'{sid}_{var}' for var in template_vars]
+    for sid in PLAYERS.keys():
+        player_vars = ['{{ %s }}' % f'{var}_{sid}' for var in template_vars]
         text = template.format(*player_vars)
         player_sentences.append(text)
     all_sentences = ' '.join(player_sentences)
@@ -90,17 +90,24 @@ def construct_template(players, template, template_vars):
 
 def construct_story():
     """"""
-    template, template_vars = '{0} is wearing {1}.', ["fullname", "responses_disguise"]
-    wearing = construct_template(PLAYERS, template, template_vars)
-    entering_text = f'{wearing} You enter the mansion. People greet you and ask what gift you brought.'
-    entering_mapping = {'player_fullname': 'fullname', 'player_responses_disguise': 'response_disguise'}
-
+    # Disguise: what are players wearing
     intro = StoryNarration('intro', 'You are in front of this mansion. What are you wearing?')
     disguise = StoryInput('disguise', 'What disguise are you wearing?')
-    entering = StoryNarration('entering', entering_text, entering_mapping)
+
+    # Gift: what gifts have been brought
+    template_mapping = {'player_fullname': 'fullname', 'player_response_disguise': 'response_disguise'}
+    wearing = construct_template(PLAYERS, '{0} is wearing {1}.', template_mapping.values())
+    entering_text = f'{wearing} You enter the mansion. People greet you and ask what gift you brought.'
+    entering = StoryNarration('entering', entering_text, template_mapping)
     gift = StoryInput('gift', 'What gift did you bring?')
-    thanks = StoryNarration('thanks', 'You may enter. You approach people, what do you say?')
+
+    template_mapping = {'player_fullname': 'fullname', 'player_response_gift': 'response_gift'}
+    gifting = construct_template(PLAYERS, '{0} brought {1}.', template_mapping.values())
+    thanks_text = f'{gifting} You may enter. You approach some party people, what do you say?'
+    thanks = StoryNarration('thanks', thanks_text, template_mapping)
     mingle = StoryInput('mingle', 'You approach some people, what do you say?')
+
+    # Mingle: speak with people
     awkward = StoryNarration('awkward', 'You are weird. Leave. You need to find Hitler.')
     search = StoryDecision('search', {'question': 'Where do you go to find Hitler himself?', 'choices': ['Garden', 'Library']})
 
@@ -142,8 +149,8 @@ def get_honorific():
     honorifics = [
         'great', 'emperor', 'child', 'jester', 'captain', 'fool', 'cunt', 'king', 'donkey', 'devil',
         'faceless', 'queen', 'young', 'bold', 'timid', 'peasant', 'big man', 'monster', 'maniac', 'flamboyant',
-        'jockey', 'flaccid', 'giant', 'weak', 'poor', 'farmer', 'knight', 'animal', 'predator', 'strangled', 'drowned',
-        'smelly', 'guardian', 'fork', 'bitch', 'pleb', 'brave', 'coward', 'legless', 'nugget', 'fallen', 'forsaken',
+        'jockey', 'giant', 'weak', 'poor', 'farmer', 'knight', 'animal', 'predator', 'strangled', 'drowned',
+        'smelly', 'fork', 'bitch', 'pleb', 'brave', 'coward', 'legless', 'nugget', 'fallen', 'forsaken',
         'grey', 'fat', 'ugly', 'sad', 'zombie', 'grinch', 'deranged'
     ]
     return f'the {honorifics[random.randrange(0, len(honorifics))]}'
