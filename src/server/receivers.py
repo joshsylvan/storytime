@@ -5,7 +5,7 @@ from .server_handler import sio
 
 @sio.event
 def connect(sid, _):
-    emitters.speak(f'New connection')
+    # emitters.speak(f'New connection')
     print("new connection")
 
 @sio.event
@@ -49,8 +49,8 @@ def read_end(sid):
     story.advance_story()
 
 
-@sio.on('next_event')
-def next_event(sid, data):
+@sio.on('next')
+def next(sid, data):
     type, response = data['body']['type'], data['body']['data']
     player = story.PLAYERS[sid]
     print(f'next: player={player.name}, response={response}')
@@ -59,7 +59,7 @@ def next_event(sid, data):
     print(response_name)
     setattr(player, response_name, response)
 
-    if isinstance(story.CURRENT_STORY, StoryDecision):
+    if isinstance(story.CURRENT_STORY, story.StoryDecision):
         if story.CURRENT_STORY.left.name == response:
             story.CURRENT_STORY.left.players.append(sid)
         else:

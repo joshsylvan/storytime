@@ -1,5 +1,6 @@
 """Storyline handling."""
 import random
+import jinja2
 
 from .emitters import emit_narrator, emit_input, emit_choice
 
@@ -18,14 +19,17 @@ class Story:
 
     def render_data(self):
         print(f'templating {self.data}')
+        text = ""
         template = jinja2.Template(self.data)
-        # player = next(iter(PLAYERS.values()))
+        player_mapping = {}
         for sid, player in PLAYERS.items():
             print(f'player:{player.__dict__}')
             for item, value in self.mapping.items():
-                self.mapping[item] = getattr(player, value)
-
-        text += template.render(self.mapping)
+                sid_value = "_".join(item.split("_")[1:])
+                sid_value = f"{sid}_{sid_value}"
+                player_mapping[sid_value] = getattr(player, value)
+        print("mapping:", player_mapping)
+        text += template.render(player_mapping)
         return text
 
 
@@ -73,11 +77,23 @@ class Player:
         self.responses = {}
 
 
+def construct_template(players, template, template_vars):
+    """For every player, extract template_vars from player and fill into template."""
+    player_sentences = []
+    for sid, player in PLAYERS.items():
+        player_vars = ['{{%s}}' % f'{sid}_{var}' for var in template_vars]
+        text = template.format(*player_vars)
+        player_sentences.append(text)
+    all_sentences = ' '.join(player_sentences)
+    return all_sentences
+
+
 def construct_story():
     """"""
-    wearing = [f'{{{sid}_fullname}} is wearing {{{sid}_responses_disguise}}.' for sid, player in PLAYERS.items()]
+    template, template_vars = '{0} is wearing {1}.', ["fullname", "responses_disguise"]
+    wearing = construct_template(PLAYERS, template, template_vars)
+    entering_text = f'{wearing} You enter the mansion. People greet you and ask what gift you brought.'
     entering_mapping = {'player_fullname': 'fullname', 'player_responses_disguise': 'response_disguise'}
-    entering_text = f'{" ".join(wearing)} You enter the mansion. People greet you and ask what gift you brought.'
 
     intro = StoryNarration('intro', 'You are in front of this mansion. What are you wearing?')
     disguise = StoryInput('disguise', 'What disguise are you wearing?')
@@ -135,7 +151,9 @@ def get_honorific():
 
 def check_all_players_done():
     """Update path and then give to narrator."""
+    global PLAYERS
     print('waiting for responses')
+
     total_players = len(PLAYERS)
     responses = 0
 
