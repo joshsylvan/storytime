@@ -92,9 +92,9 @@ def construct_story():
     """"""
     # Disguise: what are players wearing
     intro = StoryNarration('intro', 'You are in front of this mansion. What are you wearing?')
-    disguise = StoryInput('disguise', 'What disguise are you wearing?')
 
     # Gift: what gifts have been brought
+    disguise = StoryInput('disguise', 'What disguise are you wearing?')
     template_mapping = {'player_fullname': 'fullname', 'player_response_disguise': 'response_disguise'}
     wearing = construct_template(PLAYERS, '{0} is wearing {1}.', template_mapping.values())
     entering_text = f'{wearing} You enter the mansion. People greet you and ask what gift you brought.'
@@ -105,12 +105,16 @@ def construct_story():
     gifting = construct_template(PLAYERS, '{0} brought {1}.', template_mapping.values())
     thanks_text = f'{gifting} You may enter. You approach some party people, what do you say?'
     thanks = StoryNarration('thanks', thanks_text, template_mapping)
-    mingle = StoryInput('mingle', 'You approach some people, what do you say?')
 
     # Mingle: speak with people
-    awkward = StoryNarration('awkward', 'You are weird. Leave. You need to find Hitler.')
-    search = StoryDecision('search', {'question': 'Where do you go to find Hitler himself?', 'choices': ['Garden', 'Library']})
+    mingle = StoryInput('mingle', 'You approach some people, what do you say?')
+    template_mapping = {'player_fullname': 'fullname', 'player_response_mingle': 'response_mingle'}
+    player_icebreakers = construct_template(PLAYERS, '{0} says: "{1}".', template_mapping.values())
+    awkward_text = f'{player_icebreakers} The guests ignore you - they are disgusted by your lack of respect. You need to find Hitler.'
+    awkward = StoryNarration('awkward', awkward_text, template_mapping)
 
+    # party split
+    search = StoryDecision('search', {'question': 'Where do you go to find Hitler himself?', 'choices': ['Garden', 'Library']})
     garden = StoryInput('garden', 'What you drinking fam?')
     library = StoryInput('library', "What do you think of Hitler's painting?")
 
